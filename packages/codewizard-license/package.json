@@ -1,0 +1,26 @@
+{
+  "name": "@codewizard/license",
+  "version": "1.0.0",
+  "description": "Reusable CodeWizard license verification, suspension screen and renewal flow for client Next.js websites.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./middleware": "./src/middleware.ts",
+    "./client": "./src/client.tsx",
+    "./components": "./src/components/LicenseSuspended.tsx",
+    "./types": "./src/types.ts",
+    "./verification": "./src/verification.ts"
+  },
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
