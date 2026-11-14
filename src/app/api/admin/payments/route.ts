@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   if (search) {
     const escaped = escapeSearch(search);
     query = query.or(
-      `payment_code.ilike.%${escaped}%,transaction_ref.ilike.%${escaped}%,razorpay_payment_id.ilike.%${escaped}%,razorpay_order_id.ilike.%${escaped}%,client.name.ilike.%${escaped}%`
+      `payment_code.ilike.%${escaped}%,transaction_ref.ilike.%${escaped}%,razorpay_payment_id.ilike.%${escaped}%,razorpay_order_id.ilike.%${escaped}%`
     );
   }
   if (status) query = query.eq("status", status);

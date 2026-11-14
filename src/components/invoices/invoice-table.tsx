@@ -2,19 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, FileText, Download } from "lucide-react";
+import { Plus, Search, FileText, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
-import { TableSkeleton } from "@/components/loading";
+import { LoadErrorNotice, TableSkeleton } from "@/components/loading";
 import { StatusBadge } from "@/components/status-badge";
 import { InvoiceFormDialog } from "@/components/invoices/invoice-form-dialog";
 import { formatINR } from "@/lib/money";
 import { formatDateIST } from "@/lib/dates";
 import type { Client, Invoice } from "@/lib/types";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 export function InvoiceTable({
   clients,
@@ -28,34 +29,40 @@ export function InvoiceTable({
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
+    setLoadError(null);
     try {
       const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       if (status) params.set("status", status);
       if (type) params.set("type", type);
-      const response = await fetch(`/api/admin/invoices?${params}`);
+      const response = await fetch(`/api/admin/invoices?${params}`, { signal });
       const json = await response.json();
-      if (json.success) {
-        setItems(json.data.items);
-        setTotal(json.data.total);
+      if (!response.ok || !json.success) {
+        throw new Error(json.error?.message ?? "Please try again.");
       }
-    } catch {
-      // Transient API errors leave the table in its empty state.
+      setItems(json.data.items);
+      setTotal(json.data.total);
+    } catch (error) {
+      if (signal?.aborted) return;
+      setLoadError(error instanceof Error ? error.message : "Please try again.");
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [page, pageSize, search, status, type]);
+  }, [page, pageSize, debouncedSearch, status, type]);
 
   useEffect(() => {
-    const timer = setTimeout(load, 250);
-    return () => clearTimeout(timer);
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
   }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -65,7 +72,11 @@ export function InvoiceTable({
       <div className="flex flex-col gap-2 border-b p-3 sm:p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative w-full sm:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            {loading ? (
+              <Loader2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            ) : (
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            )}
             <Input
               value={search}
               onChange={(event) => {
@@ -101,11 +112,13 @@ export function InvoiceTable({
           </div>
       </div>
 
-      {loading ? (
+      {loadError && <div className="px-4"><LoadErrorNotice message={loadError} onRetry={load} /></div>}
+
+      {loading && items.length === 0 ? (
         <div className="p-4">
           <TableSkeleton />
         </div>
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !loadError ? (
         <EmptyState
           title="No invoices found"
           description="Create development, AMC or additional service invoices."
@@ -116,7 +129,7 @@ export function InvoiceTable({
             </Button>
           }
         />
-      ) : (
+      ) : items.length > 0 ? (
         <>
           <div className="divide-y md:hidden">
             {items.map((invoice) => (
@@ -218,7 +231,7 @@ export function InvoiceTable({
             </div>
           </div>
         </>
-      )}
+      ) : null}
 
       <InvoiceFormDialog open={dialogOpen} onOpenChange={setDialogOpen} clients={clients} websites={websites} onSuccess={load} />
     </Card>

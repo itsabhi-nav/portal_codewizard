@@ -72,7 +72,7 @@ export default function LoginPage() {
 
         <Card className="glass-card border-border/60 shadow-xl">
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" aria-busy={submitting}>
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <div className="relative">
@@ -100,7 +100,7 @@ export default function LoginPage() {
 
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign in
+                {submitting ? "Signing in…" : "Sign in"}
               </Button>
             </form>
           </CardContent>

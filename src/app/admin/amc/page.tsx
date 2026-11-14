@@ -20,12 +20,16 @@ export default async function AmcPage() {
   const client = getSupabase();
   const businessDate = todayIST();
 
-  const { data: contracts } = await client
-    .from("amc_contracts")
-    .select(
-      "*, website:websites(id, name, public_id, client_id, domains:website_domains(domain, is_primary), client:clients(id, name, mobile, whatsapp_number), settings:website_settings(reminders_enabled))"
-    )
-    .order("created_at", { ascending: false });
+  const [contractsRes, amcPaymentsRes] = await Promise.all([
+    client
+      .from("amc_contracts")
+      .select(
+        "*, website:websites(id, name, public_id, client_id, domains:website_domains(domain, is_primary), client:clients(id, name, mobile, whatsapp_number), settings:website_settings(reminders_enabled))"
+      )
+      .order("created_at", { ascending: false }),
+    client.from("payments").select("amount_paise").eq("purpose", "amc_renewal").eq("status", "successful"),
+  ]);
+  const contracts = contractsRes.data;
 
   const rows: AmcRow[] = (contracts ?? []).map((contract) => {
     const website = contract.website;
@@ -82,12 +86,7 @@ export default async function AmcPage() {
       .reduce((sum, r) => sum + r.renewalAmountPaise, 0),
   };
 
-  const { data: amcPayments } = await client
-    .from("payments")
-    .select("amount_paise")
-    .eq("purpose", "amc_renewal")
-    .eq("status", "successful");
-  const amcRevenue = (amcPayments ?? []).reduce((sum, p) => sum + Number(p.amount_paise), 0);
+  const amcRevenue = (amcPaymentsRes.data ?? []).reduce((sum, p) => sum + Number(p.amount_paise), 0);
 
   return (
     <div className="space-y-4 sm:space-y-6">

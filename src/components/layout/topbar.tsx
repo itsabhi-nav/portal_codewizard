@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, User } from "lucide-react";
+import { Loader2, LogOut, Menu, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,7 +25,8 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   async function logout() {
     setLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Logout request failed");
       toast.success("Signed out");
       router.replace("/login");
       router.refresh();
@@ -70,13 +71,18 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
+                disabled={loggingOut}
                 onSelect={(event) => {
                   event.preventDefault();
-                  logout();
+                  if (!loggingOut) void logout();
                 }}
                 className="text-destructive focus:text-destructive"
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                {loggingOut ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="mr-2 h-4 w-4" />
+                )}
                 {loggingOut ? "Signing out…" : "Sign out"}
               </DropdownMenuItem>
             </DropdownMenuContent>

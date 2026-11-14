@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
   if (search) {
     const escaped = escapeSearch(search);
-    query = query.or(`invoice_number.ilike.%${escaped}%,client.name.ilike.%${escaped}%`);
+    query = query.ilike("invoice_number", `%${escaped}%`);
   }
   if (status) query = query.eq("status", status);
   if (type) query = query.eq("invoice_type", type);

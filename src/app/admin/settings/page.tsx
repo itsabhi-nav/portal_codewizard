@@ -21,9 +21,8 @@ export default async function SettingsPage() {
   }
 
   const client = getSupabase();
-  const settings = await getAppSettings(client);
-
-  const [templatesRes, cronLogsRes] = await Promise.all([
+  const [settings, templatesRes, cronLogsRes] = await Promise.all([
+    getAppSettings(client),
     client.from("notification_templates").select("*").order("key", { ascending: true }),
     client.from("cron_execution_logs").select("*").order("created_at", { ascending: false }).limit(10),
   ]);

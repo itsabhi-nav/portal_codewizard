@@ -35,13 +35,16 @@ export default async function TransactionsPage({
   if (status) query = query.eq("status", status);
   if (websiteId) query = query.eq("website_id", websiteId);
 
-  const { data: orders } = await query;
-
-  const { data: webhooks } = await client
-    .from("razorpay_webhook_events")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(20);
+  const [ordersRes, webhooksRes] = await Promise.all([
+    query,
+    client
+      .from("razorpay_webhook_events")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+  const orders = ordersRes.data;
+  const webhooks = webhooksRes.data;
 
   return (
     <div className="space-y-4 sm:space-y-6">
